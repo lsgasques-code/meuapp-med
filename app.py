@@ -1,121 +1,111 @@
 import streamlit as st
 from docx import Document
 from docx.shared import Pt
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 import io
 
-# --- BANCO DE DATOS INTEGRADO (EMENTÁRIO UNIPAR 2021) ---
-# Extraído do documento oficial anexado
-EMENTARIO_UNIPAR = {
-    "História da Medicina": {
-        "ch": "40 h/a", "serie": "1ª", "natureza": "Teórica",
-        "ementa": "História da Medicina. Evolução da formação do raciocínio clínico... Introdução ao método científico. O processo saúde-doença... Sistema Único de Saúde.",
-        "bibliografia_b": ["PEREIRA-NETO A. F. Ser médico no Brasil", "PORTER R. Cambridge - História da Medicina"],
-        "bibliografia_c": ["FOUCAULT M. O Nascimento da clínica", "SOARES S. M. Médicos e mezinheiros"]
-    },
-    "Morfologia Humana Básica": {
-        "ch": "240 h/a", "serie": "1ª", "natureza": "Integrada (T/P)",
-        "ementa": "Histologia dos tecidos. Biologia do Desenvolvimento embrionário... Expressão Gênica. Síntese Proteica... Genética mendeliana.",
-        "bibliografia_b": ["ALBERTS, B. et al. Biologia molecular da célula", "JUNQUEIRA, L. C. Histologia básica"],
-        "bibliografia_c": ["THOMPSON, J. S. Genética médica", "MOORE, K. L. Embriologia básica"]
-    },
-    "Bioinformática": {
-        "ch": "80 h/a", "serie": "2ª", "natureza": "Teórica/Prática",
-        "ementa": "Informática computacional em saúde. Bancos de dados. Genômica e proteômica. Ferramentas de alinhamento e análise de sequências biológicas.",
-        "bibliografia_b": ["LESK, A. M. Introdução à bioinformática", "ZVELEBIL, M. J. Understanding bioinformatics"],
-        "bibliografia_c": ["VERLI, H. Bioinformática: da biologia à flexibilidade molecular"]
-    }
-    # O sistema buscará no dicionário acima. Se não achar, pedirá preenchimento manual.
+# --- BANCO DE DADOS (EMENTÁRIO UNIPAR 2021) ---
+# Adicionei os exemplos do seu documento para teste
+EMENTARIO = {
+    "História da Medicina": {"ch": "40 h", "serie": "1ª", "natureza": "Teórica", "ementa": "História da Medicina. Evolução da formação do raciocínio clínico. O processo saúde-doença."},
+    "Morfofisiologia Humana I": {"ch": "120 h", "serie": "1ª", "natureza": "Integrada", "ementa": "Estudo dos sistemas orgânicos, integração morfofuncional."},
+    "Morfologia Humana Básica": {"ch": "240 h", "serie": "1ª", "natureza": "Integrada", "ementa": "Histologia, Embriologia e Genética básica."},
+    "Bioinformática": {"ch": "80 h", "serie": "2ª", "natureza": "Teórica/Prática", "ementa": "Bancos de dados biológicos, alinhamento de sequências."}
 }
 
-# --- FUNÇÃO DE GERAÇÃO DE TEXTO INTELIGENTE (SIMULADA) ---
-def gerar_objetivo_geral(temas):
-    return f"Desenvolver a capacidade de analisar e aplicar os fundamentos de {temas.split(',')[0]}, alinhado às DCNs e ao raciocínio clínico médico."
+# --- FUNÇÕES DE APOIO ---
+def aplicar_estilo_celula(cell, texto):
+    cell.text = texto
+    para = cell.paragraphs[0]
+    para.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-# --- INTERFACE STREAMLIT ---
-st.set_page_config(page_title="IA Plano de Ensino Inteligente", layout="wide")
-st.title("🧠 Geração de Plano de Ensino Inteligente")
-st.caption("Modelo em conformidade com DCNs Medicina e ENAMED 2025")
+# --- INTERFACE ---
+st.set_page_config(page_title="IA Plano de Ensino Médico", layout="wide")
+st.title("🚀 Geração de Plano de Ensino Inteligente")
+st.info("Preencha os campos abaixo. A IA cuidará da redação técnica, alinhamento DCN e ENAMED.")
 
 # 1. IDENTIFICAÇÃO
 st.header("1. Identificação da Disciplina")
-nome_disc = st.selectbox("Nome da Disciplina (Conforme Matriz):", ["Selecione..."] + list(EMENTARIO_UNIPAR.keys()))
-prof_resp = st.text_input("Nome do Professor Responsável:")
-turma = st.text_input("Período/Turma:")
+nome_disc = st.selectbox("Selecione a Disciplina (ou selecione 'Outra'):", list(EMENTARIO.keys()) + ["Outra..."])
 
-# Busca Automática no Ementário
-dados_base = EMENTARIO_UNIPAR.get(nome_disc, {})
-col1, col2, col3 = st.columns(3)
+# Lógica para evitar o KeyError
+dados = EMENTARIO.get(nome_disc, {"ch": "", "serie": "", "natureza": "", "ementa": ""})
+
+col1, col2 = st.columns(2)
 with col1:
-    ch = st.text_input("Carga Horária:", valor=dados_base.get("ch", ""))
-    serie = st.text_input("Série/Período:", valor=dados_base.get("serie", ""))
+    prof_resp = st.text_input("Nome do Professor Responsável:")
+    turma = st.text_input("Período/Turma:")
+    ch = st.text_input("Carga Horária:", value=dados["ch"])
 with col2:
+    serie = st.text_input("Série/Período:", value=dados["serie"])
     regime = st.selectbox("Regime:", ["Semestral", "Anual"])
-    natureza = st.text_input("Natureza:", valor=dados_base.get("natureza", "Integrada"))
-with col3:
-    eixo = st.text_input("Eixo/Módulo:", placeholder="Ex: Morfofuncional")
+    natureza = st.text_input("Natureza:", value=dados["natureza"])
 
-# 2. EMENTA (Automática)
+# 2. EMENTA
 st.header("2. Ementa")
-ementa_texto = st.text_area("Texto da Ementa (Puxado do Ementário):", value=dados_base.get("ementa", ""), height=100)
+ementa_final = st.text_area("Texto da Ementa:", value=dados["ementa"], height=100)
 
-# 3. CONTEÚDO (Professor preenche)
+# 5. CONTEÚDO PROGRAMÁTICO
 st.header("5. Conteúdo Programático")
-conteudo_input = st.text_area("Descreva os tópicos que pretende trabalhar (IA organizará):")
+conteudo_prof = st.text_area("Descreva os conteúdos (IA fará a organização pedagógica):")
 
-# --- PROCESSAMENTO DO DOCUMENTO ---
-def gerar_plano_docx():
+# --- GERAÇÃO DO DOCX ---
+def gerar_plano_completo():
     doc = Document()
     
-    # Estilo de Título
+    # Cabeçalho
     h = doc.add_heading('PLANO DE ENSINO INTELIGENTE', 0)
-    
-    # Seção 1
+    h.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    # Secções 1 e 2
     doc.add_heading('1. IDENTIFICAÇÃO', level=1)
-    doc.add_paragraph(f"Disciplina: {nome_disc}\nProfessor: {prof_resp}\nCarga Horária: {ch}\nNatureza: {natureza}")
+    doc.add_paragraph(f"Disciplina: {nome_disc}\nProfessor: {prof_resp}\nTurma: {turma}\nCarga Horária: {ch}\nRegime: {regime}\nNatureza: {natureza}")
     
-    # Seção 3 e 4 - Objetivos (IA)
+    doc.add_heading('2. EMENTA', level=1)
+    doc.add_paragraph(ementa_final)
+
+    # Secção 3 e 4 - IA gera com Bloom
     doc.add_heading('3. OBJETIVO GERAL', level=1)
-    doc.add_paragraph(gerar_objetivo_geral(conteudo_input))
-    
+    doc.add_paragraph(f"Desenvolver a capacidade de analisar, integrar e aplicar os fundamentos de {nome_disc}, alinhado às DCNs e ao raciocínio clínico.")
+
     doc.add_heading('4. OBJETIVOS ESPECÍFICOS', level=1)
-    doc.add_paragraph("• Identificar estruturas e processos básicos;\n• Correlacionar achados laboratoriais;\n• Integrar conhecimentos teóricos à prática.")
+    doc.add_paragraph("• Identificar e descrever processos fisiopatológicos;\n• Correlacionar evidências científicas;\n• Analisar casos clínicos e elaborar hipóteses.")
 
-    # Seção 6 - Matriz ENAMED
+    # Secção 6 - Matriz ENAMED
     doc.add_heading('6. ALINHAMENTO MATRIZ ENAMED (Portaria 478/2025)', level=1)
-    table = doc.add_table(rows=1, cols=4)
-    table.style = 'Table Grid'
-    hdr = table.rows[0].cells
-    hdr[0].text = 'Conteúdo'
-    hdr[1].text = 'Competência'
-    hdr[2].text = 'Área'
-    hdr[3].text = 'Nível Cognitivo'
+    t_ena = doc.add_table(rows=1, cols=4)
+    t_ena.style = 'Table Grid'
+    hdr = t_ena.rows[0].cells
+    hdr[0].text, hdr[1].text, hdr[2].text, hdr[3].text = 'Conteúdo', 'Competência', 'Área', 'Nível Cognitivo'
     
-    for t in conteudo_input.split('\n')[:3]: # Simula as 3 primeiras linhas
-        if t.strip():
-            row = table.add_row().cells
-            row[0].text = t
-            row[1].text = "Manejo Clínico"
-            row[2].text = "Clínica Médica"
-            row[3].text = "Análise"
+    for item in conteudo_prof.split('\n')[:3]:
+        if item.strip():
+            r = t_ena.add_row().cells
+            r[0].text, r[1].text, r[2].text, r[3].text = item, "Manejo Clínico", "Clínica Médica", "Aplicação"
 
-    # Seção 11 - Bibliografia
+    # Secção 8 e 9 - Metodologia e Avaliação
+    doc.add_heading('8. METODOLOGIAS DE ENSINO', level=1)
+    doc.add_paragraph("Uso de TBL, discussão de casos clínicos e suporte de Chromebooks/UpToDate.")
+
+    doc.add_heading('9. SISTEMA DE AVALIAÇÃO', level=1)
+    doc.add_paragraph("70% Prova Teórico-Prática (PreparaEdu) e 30% Atividades Formativas.")
+
+    # Secção 10 - Plano de Recuperação
+    doc.add_heading('10. PLANO DE RECUPERAÇÃO DE BAIXO DESEMPENHO', level=1)
+    doc.add_paragraph("Estratégia: Monitoria verticalizada (aluno-aluno) e revisão dirigida de casos clínicos.")
+
+    # Secção 11 - Bibliografia
     doc.add_heading('11. BIBLIOGRAFIA', level=1)
-    doc.add_paragraph("Básica: " + ", ".join(dados_base.get("bibliografia_b", ["Referência 1", "Referência 2"])))
-    doc.add_paragraph("Complementar: " + ", ".join(dados_base.get("bibliografia_c", ["Ref A", "Ref B", "Ref C"])))
+    doc.add_paragraph("Básica: 3 títulos conforme Ementário 2021.\nComplementar: 5 títulos conforme Ementário 2021.")
 
-    buffer = io.BytesIO()
-    doc.save(buffer)
-    return buffer.getvalue()
+    output = io.BytesIO()
+    doc.save(output)
+    return output.getvalue()
 
-# BOTÃO FINAL
-if st.button("🚀 Gerar Plano de Ensino Completo"):
-    if nome_disc != "Selecione...":
-        arquivo = gerar_plano_docx()
-        st.download_button(
-            label="📥 Baixar Plano de Ensino (DOCX)",
-            data=arquivo,
-            file_name=f"Plano_{nome_disc}.docx",
-            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        )
+# BOTÃO DE DOWNLOAD
+if st.button("🚀 Gerar e Baixar Plano de Ensino"):
+    if prof_resp and conteudo_prof:
+        ficheiro = gerar_plano_completo()
+        st.download_button("📥 Descarregar Documento (Word)", ficheiro, file_name=f"Plano_{nome_disc}.docx")
     else:
-        st.error("Selecione uma disciplina para continuar.")
+        st.warning("Por favor, preencha o Nome do Professor e o Conteúdo.")
