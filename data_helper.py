@@ -1,35 +1,29 @@
 # data_helper.py
-# Consolidação da Matriz 2026 e Ementário UNIPAR
+# Consolidação da Matriz Curricular 2026 - Medicina UNIPAR Umuarama
+
 MODULOS_UNIPAR = {
-    "Fundamentos da Prática Médica I (1ª Série)": {
+    "1ª Série - Fundamentos da Prática Médica I": {
         "serie": "1ª Série",
         "carga_horaria": "1.320h",
-        "ementas": "Discussão Clínica Integradora (PBL), Habilidades Clínicas e Relação Médico-Paciente (BLS, Sinais Vitais), Anatomia Humana (Nomenclatura e Sistemas), Fisiologia (Membrana, Cardiovascular, Renal), Histologia, Embriologia, Citologia, Bioquímica e Saúde Coletiva.",
-        "componentes": ["Anatomia I", "Fisiologia I", "Bioquímica", "Habilidades Clínicas I", "PBL I"],
+        "ementas": "Discussão Clínica Integradora I (PBL), Habilidades Clínicas I, Relação Médico-Paciente I, Anatomia Humana I, Fisiologia I, Histologia e Embriologia, Citologia, Bioquímica, Interação Comunitária e Saúde Coletiva I.",
         "ciclo": "Básico"
     },
-    "Fundamentos da Prática Médica II (2ª Série)": {
+    "2ª Série - Fundamentos da Prática Médica II": {
         "serie": "2ª Série",
         "carga_horaria": "1.400h",
-        "ementas": "Discussão Clínica Integradora II, Habilidades Clínicas (Exame Físico Específico, Abdome, Neurológico), Anatomia II (Topográfica), Fisiologia II (Integrativa), Microbiologia, Parasitologia, Biologia Molecular, Imunologia, Farmacologia Básica e Patologia Geral.",
-        "componentes": ["Anatomia II", "Fisiologia II", "Micro/Para", "Farmaco Básica", "Patologia Geral"],
+        "ementas": "Discussão Clínica Integradora II (PBL), Habilidades Clínicas II, Relação Médico-Paciente II, Anatomia Humana II, Fisiologia II, Microbiologia, Parasitologia, Biologia Molecular, Imunologia, Farmacologia Básica e Integrada, Patologia Geral, Epidemiologia e Saúde Coletiva II.",
         "ciclo": "Básico"
     },
-    "Clínica Integrada e Ciclos da Vida I (3ª Série)": {
+    "3ª Série - Clínica Integrada e Ciclos da Vida I": {
         "serie": "3ª Série",
         "carga_horaria": "1.320h",
-        "ementas": "Neurologia, Hematologia, Oncologia, Endocrinologia, Farmacologia Clínica, Técnicas Cirúrgicas, Saúde da Criança, Mulher e Idoso. Foco em raciocínio clínico e ambulatorial.",
-        "componentes": ["Clínica Médica I", "Cirurgia I", "Saúde Coletiva III", "Farmaco Clínica"],
+        "ementas": "Discussão Clínica Integradora III, Neurologia, Hematologia, Oncologia, Endocrinologia, Otorrinolaringologia, Oftalmologia, Dermatologia, Farmacologia Clínica, Técnicas Cirúrgicas, Ortopedia, Saúde da Criança, Mulher e Idoso, Saúde da Família, Psiquiatria.",
         "ciclo": "Clínico"
     },
-    "Clínica Integrada e Ciclos da Vida II (4ª Série)": {
+    "4ª Série - Clínica Integrada e Ciclos da Vida II": {
         "serie": "4ª Série",
         "carga_horaria": "1.320h",
-        "ementas": "Pneumologia, Cardiologia, Nefrologia, Infectologia, Reumatologia, Emergências Clínicas e Medicina Intensiva, Gastroenterologia, Ginecologia e Pediatria Avançada.",
-        "componentes": ["Clínica Médica II", "Cirurgia II", "Urgência e Emergência", "Cuidados Paliativos"],
+        "ementas": "Discussão Clínica Integradora IV, Pneumologia, Cardiologia, Nefrologia, Doenças Infecto-Parasitárias, Reumatologia, Emergências Clínicas e Medicina Intensiva, Gastroenterologia, Urologia, Ginecologia e Obstetrícia, Pediatria, Cuidados Paliativos.",
         "ciclo": "Clínico"
     }
 }
-
-# Referência ENAMED (Portaria 478/2025)
-ENAMED_AREAS = ["Clínica Médica", "Cirurgia Geral", "Ginecologia e Obstetrícia", "Pediatria", "Medicina da Família e Comunidade", "Saúde Mental", "Saúde Coletiva"]
