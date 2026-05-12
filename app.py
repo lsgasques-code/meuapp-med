@@ -1,5 +1,6 @@
+# app.py
 import streamlit as st
-from openai import OpenAI
+import google.generativeai as genai
 import data_helper
 
 st.set_page_config(page_title="Gerador de Planos UNIPAR", layout="wide")
@@ -7,53 +8,65 @@ st.set_page_config(page_title="Gerador de Planos UNIPAR", layout="wide")
 st.title("🍎 Arquiteto de Ensino Medicina UNIPAR")
 st.caption("Alinhado às DCNs 2025 e Matriz de Referência ENAMED (Portaria 478/2025)")
 
-# Sidebar para Configurações
+# Verifica se a chave da API está configurada nos segredos do Streamlit
+if "GEMINI_API_KEY" not in st.secrets:
+    st.error("ERRO CRÍTICO: A chave 'GEMINI_API_KEY' não foi encontrada nos Secrets do Streamlit Cloud.")
+    st.stop()
+
+# Configuração da API do Gemini puxando a chave segura
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+model = genai.GenerativeModel('gemini-1.5-pro')
+
+# --- BARRA LATERAL ---
 with st.sidebar:
-    st.header("Configurações")
-    api_key = st.text_input("Insira sua OpenAI API Key", type="password")
+    st.header("Identificação do Docente")
     professor_nome = st.text_input("Nome do Professor Responsável")
 
-# 1. Identificação do Módulo
+# --- ÁREA PRINCIPAL ---
+st.subheader("1. Configuração do Módulo")
 modulo_selecionado = st.selectbox("Selecione o Módulo Integrado:", list(data_helper.MODULOS_UNIPAR.keys()))
 dados_modulo = data_helper.MODULOS_UNIPAR[modulo_selecionado]
 
-# 2. Entrada do Professor
-conteudo_input = st.text_area("Descreva os temas centrais que deseja focar neste semestre:")
+st.subheader("2. Foco Pedagógico")
+conteudo_input = st.text_area("Descreva os temas centrais ou patologias que deseja focar neste plano:", height=150)
 
 if st.button("Gerar Plano de Ensino Ótimo"):
-    if not api_key:
-        st.error("Por favor, insira a API Key na barra lateral.")
+    if not professor_nome or not conteudo_input:
+        st.warning("Por favor, preencha o nome do professor e os temas centrais antes de gerar.")
     else:
-        client = OpenAI(api_key=api_key)
-        
-        # Prompt de Engenharia para a IA
         prompt = f"""
-        Atue como um Especialista em Educação Médica. Gere um Plano de Ensino para a UNIPAR:
-        Módulo: {modulo_selecionado}
-        Série: {dados_modulo['serie']}
-        Carga Horária: {dados_modulo['carga_horaria']}
-        Ementas Oficiais: {dados_modulo['ementas']}
-        Ciclo Atual: {dados_modulo['ciclo']}
+        Atue como um Especialista rigoroso em Educação Médica. Crie um Plano de Ensino oficial para o curso de Medicina da UNIPAR.
         
-        DIRETRIZES OBRIGATÓRIAS:
-        1. Use Taxonomia de Bloom: Para o ciclo {dados_modulo['ciclo']}, use verbos de {'Conhecimento/Compreensão' if dados_modulo['ciclo'] == 'Básico' else 'Aplicação/Análise'}.
-        2. Visão Integrada: Organize o conteúdo de forma sistêmica, não separando as disciplinas.
-        3. ENAMED: Relacione o conteúdo com as competências da Portaria 478/2025.
-        4. Avaliação: Aplique a regra de 70% para provas (Teórica/Prática/OSCE) e 30% para atividades formativas/PBL.
-        5. Metodologia: Sugira um mix criativo (TBL, Simulação, Mini-Cex).
-        6. Bibliografia: Sugira 3 obras básicas e 5 complementares em ABNT.
-        7. Plano de Recuperação: Gere uma estratégia para alunos de baixo desempenho.
-
-        Conteúdo sugerido pelo professor: {conteudo_input}
+        DADOS INSTITUCIONAIS:
+        Módulo: {modulo_selecionado}
+        Professor: {professor_nome}
+        Carga Horária Total: {dados_modulo['carga_horaria']}
+        Ementas Oficiais do Módulo: {dados_modulo['ementas']}
+        Ciclo: {dados_modulo['ciclo']}
+        
+        Temas inseridos pelo professor: {conteudo_input}
+        
+        REGRAS PEDAGÓGICAS ESTRITAS (NÃO DESVIE):
+        1. Identificação: Crie o cabeçalho completo.
+        2. Objetivos (Bloom): Se o ciclo for 'Básico', use verbos de Compreensão/Aplicação. Se for 'Clínico', use Análise/Decisão.
+        3. Visão Integrada: Organize o conteúdo programático de forma sistêmica (por sistemas do corpo ou síndromes), unindo as disciplinas básicas e clínicas.
+        4. Matriz ENAMED (Portaria 478/2025): Crie uma tabela cruzando os conteúdos com as competências do ENAMED.
+        5. Sistema de Avaliação: Crie uma tabela de avaliação garantindo rigorosamente que Provas Somativas/OSCE tenham peso total de 70%, e atividades formativas (PBL/Portfólio) tenham 30%.
+        6. Metodologia: Proponha um mix de PBL, Simulação Realística e preleção dialogada.
+        7. Plano de Recuperação: Estabeleça estratégias claras para alunos com baixo rendimento.
+        8. Bibliografia: Sugira 3 obras básicas e 3 complementares no formato ABNT, priorizando literaturas médicas consagradas atualizadas.
+        
+        Gere o plano formatado em Markdown profissional.
         """
 
-        with st.spinner('A IA está arquitetando seu plano pedagógico...'):
-            response = client.chat.completions.create(
-                model="gpt-4o", # ou "gpt-3.5-turbo"
-                messages=[{"role": "system", "content": "Você é um consultor pedagógico de medicina de elite."},
-                          {"role": "user", "content": prompt}]
-            )
-            
-            plano_gerado = response.choices[0].message.content
-            st.markdown(plano_gerado)
-            st.download_button("Baixar Plano (Markdown)", plano_gerado, file_name="plano_unipar.md")
+        with st.spinner('Analisando matriz curricular e gerando arquitetura pedagógica...') :
+            try:
+                response = model.generate_content(prompt)
+                plano_gerado = response.text
+                
+                st.success("Plano de Ensino gerado com sucesso!")
+                st.markdown("---")
+                st.markdown(plano_gerado)
+                
+            except Exception as e:
+                st.error(f"Ocorreu um erro ao comunicar com a IA: {e}")
