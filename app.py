@@ -15,7 +15,7 @@ if "GEMINI_API_KEY" not in st.secrets:
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
 # 2. Definição do Modelo Oficial do Google (Versão Estável)
-model = genai.GenerativeModel('gemini-1.5-pro')
+model = genai.GenerativeModel('gemini-pro')
 
 # --- BARRA LATERAL ---
 with st.sidebar:
