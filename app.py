@@ -14,21 +14,46 @@ if "GEMINI_API_KEY" not in st.secrets:
 
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
-# 2. Definição do Modelo Oficial do Google (Versão Estável)
-model = genai.GenerativeModel('gemini-1.5-flash')
+# 2. SELEÇÃO DINÂMICA DE MODELOS (À Prova de Erro 404)
+# O sistema varre a sua chave e lista todos os modelos que ela tem permissão para usar.
+try:
+    modelos_disponiveis = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+    
+    # Lógica de seleção: tenta o mais avançado, cai para os básicos se necessário
+    if 'models/gemini-1.5-pro' in modelos_disponiveis:
+        modelo_escolhido = 'gemini-1.5-pro'
+    elif 'models/gemini-1.5-flash' in modelos_disponiveis:
+        modelo_escolhido = 'gemini-1.5-flash'
+    elif 'models/gemini-1.0-pro' in modelos_disponiveis:
+        modelo_escolhido = 'gemini-1.0-pro'
+    elif 'models/gemini-pro' in modelos_disponiveis:
+        modelo_escolhido = 'gemini-pro'
+    else:
+        # Se os nomes mudarem no futuro, ele pega o primeiro modelo funcional da lista
+        modelo_escolhido = modelos_disponiveis[0].replace('models/', '')
+
+    model = genai.GenerativeModel(modelo_escolhido)
+    
+except Exception as e:
+    st.error(f"Erro ao listar modelos disponíveis na API. Verifique a sua chave. Detalhe: {e}")
+    st.stop()
 
 # --- BARRA LATERAL ---
 with st.sidebar:
     st.header("Identificação")
     professor_nome = st.text_input("Nome do Professor Responsável:")
     turma_periodo = st.text_input("Turma/Período (Ex: Turma A - 2026/1):")
+    
+    st.markdown("---")
+    # Este texto vai provar que o código encontrou o modelo correto na Google
+    st.caption(f"✅ Conectado com sucesso ao motor: **{modelo_escolhido}**")
 
 # --- ÁREA PRINCIPAL ---
 st.subheader("1. Configuração Curricular")
 modulo_selecionado = st.selectbox("Selecione o Módulo Integrado:", list(data_helper.MODULOS_UNIPAR.keys()))
 dados_modulo = data_helper.MODULOS_UNIPAR[modulo_selecionado]
 
-# NOVO CAMPO: Nome da disciplina
+# CAMPO: Nome da disciplina
 disciplina_nome = st.text_input("Nome da Disciplina (Ex: Anatomia Humana I, Fisiologia II):")
 
 st.subheader("2. Foco Pedagógico")
@@ -38,7 +63,6 @@ if st.button("Gerar Plano de Ensino Ótimo"):
     if not professor_nome or not disciplina_nome or not conteudo_input:
         st.warning("Por favor, preencha o nome do professor, o nome da disciplina e os temas centrais antes de gerar o plano.")
     else:
-        # ATENÇÃO AQUI: As três aspas abrem o texto
         prompt = f"""
         Atue como um Especialista rigoroso em Educação Médica. Crie um Plano de Ensino oficial para o curso de Medicina da UNIPAR.
         
@@ -65,9 +89,8 @@ if st.button("Gerar Plano de Ensino Ótimo"):
         
         Gere o plano formatado em Markdown profissional.
         """
-        # ATENÇÃO AQUI: As três aspas fecham o texto. Não as apague!
 
-        with st.spinner('A analisar matriz curricular e a gerar arquitetura pedagógica...'):
+        with st.spinner(f'A analisar matriz com a inteligência do modelo {modelo_escolhido}...'):
             try:
                 response = model.generate_content(prompt)
                 plano_gerado = response.text
@@ -84,5 +107,5 @@ if st.button("Gerar Plano de Ensino Ótimo"):
                 )
                 
             except Exception as e:
-                st.error("Ocorreu um erro ao comunicar com a IA do Google.")
-                st.info(f"Detalhe técnico para o suporte: {e}")
+                st.error("Ocorreu um erro ao gerar o texto com a IA.")
+                st.info(f"Detalhe técnico: {e}")
