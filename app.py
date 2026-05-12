@@ -1,4 +1,3 @@
-# app.py
 import streamlit as st
 import google.generativeai as genai
 import data_helper
@@ -8,14 +7,15 @@ st.set_page_config(page_title="Gerador de Planos UNIPAR", layout="wide")
 st.title("🍎 Arquiteto de Ensino Medicina UNIPAR")
 st.caption("Alinhado às DCNs 2025 e Matriz de Referência ENAMED (Portaria 478/2025)")
 
-# Verifica se a chave da API está configurada nos segredos do Streamlit
+# 1. Autenticação Segura
 if "GEMINI_API_KEY" not in st.secrets:
     st.error("ERRO CRÍTICO: A chave 'GEMINI_API_KEY' não foi encontrada nos Secrets do Streamlit Cloud.")
     st.stop()
 
-# Configuração da API do Gemini puxando a chave segura
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-model = genai.GenerativeModel('gemini-1.5-pro-latest')
+
+# 2. Definição do Modelo Oficial do Google (Versão Estável)
+model = genai.GenerativeModel('gemini-1.5-pro')
 
 # --- BARRA LATERAL ---
 with st.sidebar:
@@ -32,7 +32,7 @@ conteudo_input = st.text_area("Descreva os temas centrais ou patologias que dese
 
 if st.button("Gerar Plano de Ensino Ótimo"):
     if not professor_nome or not conteudo_input:
-        st.warning("Por favor, preencha o nome do professor e os temas centrais antes de gerar.")
+        st.warning("Por favor, preencha o nome do professor e os temas centrais antes de gerar o plano.")
     else:
         prompt = f"""
         Atue como um Especialista rigoroso em Educação Médica. Crie um Plano de Ensino oficial para o curso de Medicina da UNIPAR.
@@ -59,8 +59,9 @@ if st.button("Gerar Plano de Ensino Ótimo"):
         Gere o plano formatado em Markdown profissional.
         """
 
-        with st.spinner('Analisando matriz curricular e gerando arquitetura pedagógica...') :
+        with st.spinner('Analisando matriz curricular e gerando arquitetura pedagógica...'):
             try:
+                # Chama a IA para gerar o conteúdo
                 response = model.generate_content(prompt)
                 plano_gerado = response.text
                 
@@ -68,5 +69,14 @@ if st.button("Gerar Plano de Ensino Ótimo"):
                 st.markdown("---")
                 st.markdown(plano_gerado)
                 
+                # Botão para o professor baixar o plano
+                st.download_button(
+                    label="Baixar Plano (Arquivo Markdown)", 
+                    data=plano_gerado, 
+                    file_name="plano_de_ensino_unipar.md",
+                    mime="text/markdown"
+                )
+                
             except Exception as e:
-                st.error(f"Ocorreu um erro ao comunicar com a IA: {e}")
+                st.error("Ocorreu um erro ao comunicar com a IA do Google.")
+                st.info(f"Detalhe técnico para o suporte: {e}")
