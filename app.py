@@ -1,111 +1,104 @@
 import streamlit as st
 import google.generativeai as genai
 import data_helper
+from docx import Document
+from io import BytesIO
 
-st.set_page_config(page_title="Gerador de Planos UNIPAR", layout="wide")
+st.set_page_config(page_title="Arquiteto de Ensino UNIPAR", layout="wide")
 
 st.title("🍎 Arquiteto de Ensino Medicina UNIPAR")
-st.caption("Alinhado às DCNs 2025 e Matriz de Referência ENAMED (Portaria 478/2025)")
+st.caption("Foco em DCNs 2025, Matriz ENAMED e Integração Curricular")
 
-# 1. Autenticação Segura
+# 1. Autenticação e Configuração do Modelo
 if "GEMINI_API_KEY" not in st.secrets:
-    st.error("ERRO CRÍTICO: A chave 'GEMINI_API_KEY' não foi encontrada nos Secrets do Streamlit Cloud.")
+    st.error("ERRO: Configure a 'GEMINI_API_KEY' nos Secrets do Streamlit.")
     st.stop()
 
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
-# 2. SELEÇÃO DINÂMICA DE MODELOS (À Prova de Erro 404)
-# O sistema varre a sua chave e lista todos os modelos que ela tem permissão para usar.
 try:
-    modelos_disponiveis = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-    
-    # Lógica de seleção: tenta o mais avançado, cai para os básicos se necessário
-    if 'models/gemini-1.5-pro' in modelos_disponiveis:
-        modelo_escolhido = 'gemini-1.5-pro'
-    elif 'models/gemini-1.5-flash' in modelos_disponiveis:
-        modelo_escolhido = 'gemini-1.5-flash'
-    elif 'models/gemini-1.0-pro' in modelos_disponiveis:
-        modelo_escolhido = 'gemini-1.0-pro'
-    elif 'models/gemini-pro' in modelos_disponiveis:
-        modelo_escolhido = 'gemini-pro'
-    else:
-        # Se os nomes mudarem no futuro, ele pega o primeiro modelo funcional da lista
-        modelo_escolhido = modelos_disponiveis[0].replace('models/', '')
-
-    model = genai.GenerativeModel(modelo_escolhido)
-    
+    modelos = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+    # Seleção automática do melhor modelo disponível
+    target = 'models/gemini-1.5-flash' if 'models/gemini-1.5-flash' in modelos else modelos[0]
+    model = genai.GenerativeModel(target)
 except Exception as e:
-    st.error(f"Erro ao listar modelos disponíveis na API. Verifique a sua chave. Detalhe: {e}")
+    st.error(f"Erro na conexão: {e}")
     st.stop()
 
-# --- BARRA LATERAL ---
+# --- FUNÇÃO PARA GERAR DOCX ---
+def gerar_docx(conteudo, titulo_disciplina):
+    doc = Document()
+    doc.add_heading(f'Plano de Ensino: {titulo_disciplina}', 0)
+    # Adiciona o conteúdo gerado pela IA ao documento
+    doc.add_paragraph(conteudo)
+    
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+    return buffer
+
+# --- INTERFACE ---
 with st.sidebar:
     st.header("Identificação")
-    professor_nome = st.text_input("Nome do Professor Responsável:")
-    turma_periodo = st.text_input("Turma/Período (Ex: Turma A - 2026/1):")
-    
+    professor = st.text_input("Nome do Professor:")
+    turma = st.text_input("Turma/Período:")
     st.markdown("---")
-    # Este texto vai provar que o código encontrou o modelo correto na Google
-    st.caption(f"✅ Conectado com sucesso ao motor: **{modelo_escolhido}**")
+    st.caption(f"✅ Motor Ativo: {target}")
 
-# --- ÁREA PRINCIPAL ---
-st.subheader("1. Configuração Curricular")
-modulo_selecionado = st.selectbox("Selecione o Módulo Integrado:", list(data_helper.MODULOS_UNIPAR.keys()))
-dados_modulo = data_helper.MODULOS_UNIPAR[modulo_selecionado]
+st.subheader("1. Configuração do Módulo e Disciplina")
+modulo = st.selectbox("Módulo Integrado:", list(data_helper.MODULOS_UNIPAR.keys()))
+dados = data_helper.MODULOS_UNIPAR[modulo]
+disciplina = st.text_input("Nome da Disciplina Específica:")
 
-# CAMPO: Nome da disciplina
-disciplina_nome = st.text_input("Nome da Disciplina (Ex: Anatomia Humana I, Fisiologia II):")
+st.subheader("2. Objetivos e Temas")
+temas = st.text_area("Descreva os temas que você irá ministrar:", height=150)
 
-st.subheader("2. Foco Pedagógico")
-conteudo_input = st.text_area("Descreva os temas centrais ou patologias que deseja focar neste plano:", height=150)
-
-if st.button("Gerar Plano de Ensino Ótimo"):
-    if not professor_nome or not disciplina_nome or not conteudo_input:
-        st.warning("Por favor, preencha o nome do professor, o nome da disciplina e os temas centrais antes de gerar o plano.")
+if st.button("Gerar Plano de Ensino e Habilitar Exportação"):
+    if not professor or not disciplina or not temas:
+        st.warning("Preencha todos os campos obrigatórios.")
     else:
         prompt = f"""
-        Atue como um Especialista rigoroso em Educação Médica. Crie um Plano de Ensino oficial para o curso de Medicina da UNIPAR.
+        Atue como um Especialista em Educação Médica. Crie um Plano de Ensino para a UNIPAR.
+        DISCIPLINA: {disciplina} | MÓDULO: {modulo} | PROFESSOR: {professor} | TURMA: {turma}
+        CH Módulo: {dados['carga_horaria']} | Ciclo: {dados['ciclo']} | Ementa: {dados['ementas']}
         
-        DADOS INSTITUCIONAIS PARA IDENTIFICAÇÃO:
-        Disciplina Foco: {disciplina_nome}
-        Módulo Integrador: {modulo_selecionado}
-        Professor Responsável: {professor_nome}
-        Turma/Período: {turma_periodo}
-        Carga Horária Total do Módulo: {dados_modulo['carga_horaria']}
-        Ementas Oficiais do Módulo: {dados_modulo['ementas']}
-        Ciclo: {dados_modulo['ciclo']}
+        TEMAS DO PROFESSOR: {temas}
+
+        REGRAS:
+        1. Objetivos Bloom adequados ao ciclo {dados['ciclo']}.
+        2. Tabela de correlação ENAMED (Portaria 478/2025).
+        3. Avaliação: 70% Somativa (Provas/OSCE) e 30% Formativa (PBL/Práticas).
+        4. Metodologia: Mix integrado e criativo.
+        5. Bibliografia ABNT (3 básicas, 3 complementares).
         
-        Temas inseridos pelo professor: {conteudo_input}
-        
-        REGRAS PEDAGÓGICAS ESTRITAS (NÃO DESVIE):
-        1. Identificação: Crie o cabeçalho completo utilizando os dados acima.
-        2. Objetivos (Bloom): Se o ciclo for 'Básico', use verbos de Compreensão/Aplicação. Se for 'Clínico', use Análise/Decisão. Focados na disciplina de {disciplina_nome}.
-        3. Visão Integrada: Organize o conteúdo programático de forma sistêmica, garantindo que {disciplina_nome} dialogue com as outras áreas do módulo {modulo_selecionado}.
-        4. Matriz ENAMED (Portaria 478/2025): Crie uma tabela cruzando os conteúdos de {disciplina_nome} com as competências do ENAMED.
-        5. Sistema de Avaliação: Crie uma tabela de avaliação garantindo rigorosamente que Provas Somativas/OSCE tenham peso total de 70%, e atividades formativas (PBL/Portfólio) tenham 30%.
-        6. Metodologia: Proponha um mix de PBL, Simulação Realística e preleção dialogada adequado para {disciplina_nome}.
-        7. Plano de Recuperação: Estabeleça estratégias claras para alunos com baixo rendimento.
-        8. Bibliografia: Sugira 3 obras básicas e 3 complementares no formato ABNT, priorizando literaturas médicas consagradas e atualizadas para a área.
-        
-        Gere o plano formatado em Markdown profissional.
+        Gere um texto estruturado e profissional.
         """
 
-        with st.spinner(f'A analisar matriz com a inteligência do modelo {modelo_escolhido}...'):
+        with st.spinner('A arquitetar o plano...'):
             try:
-                response = model.generate_content(prompt)
-                plano_gerado = response.text
+                res = model.generate_content(prompt)
+                texto_final = res.text
                 
-                st.success("Plano de Ensino gerado com sucesso!")
                 st.markdown("---")
-                st.markdown(plano_gerado)
+                st.markdown(texto_final)
                 
-                st.download_button(
-                    label="Baixar Plano (Arquivo Markdown)", 
-                    data=plano_gerado, 
-                    file_name=f"Plano_de_Ensino_{disciplina_nome.replace(' ', '_')}.md",
-                    mime="text/markdown"
-                )
+                # Botões de Download
+                col1, col2 = st.columns(2)
                 
+                with col1:
+                    st.download_button(
+                        label="📥 Baixar em DOCX (Word)",
+                        data=gerar_docx(texto_final, disciplina),
+                        file_name=f"Plano_{disciplina}.docx",
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    )
+                
+                with col2:
+                    st.download_button(
+                        label="📄 Baixar em Markdown",
+                        data=texto_final,
+                        file_name=f"Plano_{disciplina}.md"
+                    )
+                    
             except Exception as e:
-                st.error("Ocorreu um erro ao gerar o texto com a IA.")
-                st.info(f"Detalhe técnico: {e}")
+                st.error(f"Erro na geração: {e}")
